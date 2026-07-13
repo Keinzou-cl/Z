@@ -15,7 +15,6 @@ if api_key is None:
 
 def main():
     parser = argparse.ArgumentParser(description="Chatbot")
-    parser.add_argument("user_prompt", type=str, help="User prompt")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose output")
     args = parser.parse_args()
 
@@ -29,29 +28,33 @@ def main():
             "role": "system",
             "content": "You are Z, an AI that can read and analyze files (.txt, .py, .md, .c, and .sh). You can also solve math problems ranging from Algebra to Pre-Calculus and count a file's total number of characters and words",
         },
-    {
-        "role": "user",
-        "content": args.user_prompt
-    },
     ]
-    
 
-    response = client.chat.completions.create(model=model, messages=messages)
+    print("Welcome to Z! How may I help you?")
+    while True:
+        user_input = input().strip()
 
+        if user_input.startswith("/"):
+            command, *cmd_args = user_input[1:].split(" ")
 
-    print("=======================================")
-    print(" ")
-    print("Hello! Welcome to Z. An AI that can:")
-    print(" ")
-    print("✅ Read and Analyze files (.txt, .py, .md, .c, .sh)")
-    print("✅ Solve Math Problems (from Algebra to Pre-Calculus)")
-    print("✅ Count a File's Number of Characters and Words")
-    print(" ")
-    print("What can I do for you?")
-    print("========================================")
-    if args.verbose:
-        print(f"User prompt: {args.user_prompt}")
-    print(response.choices[0].message.content)
+            if command == "exit":
+                confirmation = input("Are you sure you want to exit? Y or N. ").strip()
+                if confirmation == "Y":
+                    print("Exited Successfully!")
+                    break
+                else:
+                    continue
+            else:
+                print(f"Command not found: /{command}")
+                continue
+        messages.append({"role": "user", "content": user_input})
+        response = client.chat.completions.create(model=model, messages=messages)
+        reply = response.choices[0].message.content
+        print(f"Z: {reply}")
+        messages.append({"role": "assistant", "content": reply})
+        if args.verbose:
+            print(f"User input: {user_input}")
+
 
 main()
 
