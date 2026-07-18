@@ -2,26 +2,33 @@ from pathlib import Path
 
 
 HOME_DIR = Path.home()
+EXCLUDED1 = [".venv", ".git", ".gitignore", ".env", "__pycache__", ".ssh", ".bash_logout", ".wget_hsts", ".claude", ".vscode-server", ".profile", ".local", ".config", ".bashrc", ".sudo_as_admin_successful", ".bash_history"]
+EXCLUDED2 = [".cache", ".dotnet", ".gitconfig", ".lesshst", ".wget-hsts", ".motd-shown", ".bootdev-yaml", ".motd_shown", ".landscape", ".bootdev.yaml"]
 
 def filepath_validation(path):
-    clean_filepath = Path(path).resolve()
+    clear_filepath = (HOME_DIR / path).resolve()
+
+    if path == "." or path == "~":
+        clear_filepath = HOME_DIR.resolve()
+    
+
     result = {"valid_boundary": None,
               "message": "",
-              "file_exists": None,
-              "resolved_filepath": clean_filepath}
+              "filepath_exists": None,
+              "resolved_filepath": clear_filepath}
 
-    if clean_filepath.is_relative_to(HOME_DIR):
+    if clear_filepath.is_relative_to(HOME_DIR):
         result["valid_boundary"] = True
-        result["message"] = f'"{clean_filepath}" is within the home directory and is a "safe" filepath'
-        if clean_filepath.exists():
-            result["file_exists"] = True
-            result["message"] = f'"{clean_filepath}" is safe, valid, and a workable filepath.'
+        result["message"] = f'"{clear_filepath}" is within the home directory and is a "safe" filepath'
+        if clear_filepath.exists():
+            result["filepath_exists"] = True
+            result["message"] = f'"{clear_filepath}" is safe, valid, and a workable filepath.'
         else:
-            result["file_exists"] = False
-            result["message"] = f'"{clean_filepath}" is an invalid filepath.'
+            result["filepath_exists"] = False
+            result["message"] = f'"{clear_filepath}" is an invalid filepath.'
     else:
         result["valid_boundary"] = False
-        result["message"] = f'The filepath "{clean_filepath}" is outside the safe domain and is deemed a "dangerous" filepath.'
+        result["message"] = f'The filepath "{clear_filepath}" is outside the safe domain and is deemed a "dangerous" filepath.'
 
     return result
     
@@ -31,11 +38,14 @@ def list_directory(path):
               "contents": []
     }
     verify_filepath = filepath_validation(path)
-    if verify_filepath["valid_boundary"] and verify_filepath["file_exists"]:
+    if verify_filepath["valid_boundary"] and verify_filepath["filepath_exists"]:
         if verify_filepath["resolved_filepath"].is_dir():
             result["status"] = True 
-            result["message"] = "The filepath is a valid directory"
-            result["contents"] = list(verify_filepath["resolved_filepath"].iterdir())
+            result["message"] = f'The filepath "{verify_filepath["resolved_filepath"]}" is a valid directory.'
+            contents = verify_filepath["resolved_filepath"].iterdir()
+            for c in contents:
+                if not any(part in EXCLUDED1 for part in c.parts) and not any(part in EXCLUDED2 for part in c.parts):
+                    result["contents"].append(c)
         else:
             result["status"] = False
             result["message"] = "The filepath is not a valid directory"
@@ -51,8 +61,11 @@ def search_content(name):
     results = {"found": None,
                "status": "",
                "matches": []}
+    
+    for c in all_contents:
+        if not any(part in EXCLUDED1 for part in c.parts) and not any(part in EXCLUDED2 for part in c.parts):
+            results["matches"].append(c)
 
-    results["matches"] = list(all_contents)
     
     if len(results["matches"]) == 0:
         results["found"] = False
