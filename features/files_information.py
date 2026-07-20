@@ -48,7 +48,7 @@ def list_directory(path):
                     result["contents"].append(c)
         else:
             result["status"] = False
-            result["message"] = "The filepath is not a valid directory"
+            result["message"] = "The filepath is not a valid directory."
     else:
         result["status"] = False
         result["message"] = verify_filepath["message"]
@@ -57,7 +57,7 @@ def list_directory(path):
 
 def search_content(name):
     content = f"*{name}*"
-    all_contents = HOME_DIR.rglob(content)
+    all_contents = Path("/").rglob(content)
     results = {"found": None,
                "status": "",
                "matches": []}
