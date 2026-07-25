@@ -2,6 +2,7 @@ import os
 import argparse
 from dotenv import load_dotenv
 from openai import OpenAI
+from collections import deque
 
 load_dotenv()
 api_key = os.environ.get("OPENROUTER_API_KEY")
@@ -23,12 +24,14 @@ def main():
     api_key=api_key,
 )
     model = "openrouter/free"
-    messages = [
+    system_message = [
          {      
             "role": "system",
             "content": "You are Z, an AI that can read and analyze files (.txt, .py, .md, .c, and .sh). You can also solve math problems ranging from Algebra to Pre-Calculus and count a file's total number of characters and words",
         },
     ]
+
+    messages = deque(maxlen=25) 
 
     print("Welcome to Z! How may I help you?")
     while True:
@@ -44,11 +47,22 @@ def main():
                     break
                 else:
                     continue
+            elif command == "history":
+                history_list = list(messages)
+                for i in range(0, len(history_list), 2):
+                    prompt_number = i // 2 + 1
+                    user_message = history_list[i]
+                    assistant_message = history_list[i + 1]
+                    print(f"----------Prompt #{prompt_number}----------")
+                    print(f"You: {user_message["content"]}")
+                    print(f"Assistant: {assistant_message["content"]}")
+                    print("----------------------------------")
             else:
                 print(f"Command not found: /{command}")
                 continue
         messages.append({"role": "user", "content": user_input})
-        response = client.chat.completions.create(model=model, messages=messages)
+        full_messages = system_message + list(messages)
+        response = client.chat.completions.create(model=model, messages=full_messages)
         reply = response.choices[0].message.content
         print(f"Z: {reply}")
         messages.append({"role": "assistant", "content": reply})

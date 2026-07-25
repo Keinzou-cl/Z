@@ -1,4 +1,5 @@
 from .files_information import filepath_validation
+from pypdf import PdfReader
 
 AVAILABLE_FILETYPES = [".py", ".txt", ".pdf", ".md", ".c", ".sh", ".go"]
 
@@ -20,16 +21,24 @@ def read_files(file, num_lines=None):
             if get_fileextension in AVAILABLE_FILETYPES:
                 results["valid_filetype"] = True
                 results["message"] = f'The filetype "{get_fileextension}" is a valid filetype.'
-                with open (verification["resolved_filepath"], "r") as f:
-                    if num_lines != None:
-                        for line in f:
-                            lines.append(line)
-                            if len(lines) == num_lines:
-                                break
-                        content = "".join(lines)
-                    else:
-                        content = f.read()
-                    results["content"] = content
+                if get_fileextension == ".pdf":
+                    read_pdf = PdfReader(verification["resolved_filepath"])
+                    text = []
+                    for page in read_pdf.pages:
+                        text.append(page.extract_text())
+                    pdf_content = "\n".join(text)
+                    results["content"] = pdf_content
+                else:
+                    with open (verification["resolved_filepath"], "r") as f:
+                        if num_lines != None:
+                            for line in f:
+                                lines.append(line)
+                                if len(lines) == num_lines:
+                                    break
+                            content = "".join(lines)
+                        else:
+                            content = f.read()
+                        results["content"] = content
             else:
                 results["valid_filetype"] = False
                 results["message"] = f'The filetype "{get_fileextension}" is an invalid filetype.'
@@ -116,7 +125,8 @@ def bookbot(file):
                 read_filecontent = read_files(verification["resolved_filepath"])
                 sentences = read_filecontent["content"].split("\n")
                 for sentence in sentences:
-                    for word in sentence:
+                    words = sentence.split() 
+                    for word in words:
                         if word in results["words_count"]:
                             results["words_count"][word] += 1
                         else:
@@ -127,6 +137,7 @@ def bookbot(file):
                             else:
                                 results["characters_count"][char] = 1
             else:
+                results["verification_status"] = False
                 results["message"] = f'The filetype "{get_fileextension} is not a readable paragraph filetype.'
         else:
             results["verification_status"] = False
