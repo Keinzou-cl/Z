@@ -23,7 +23,7 @@ def main():
     base_url="https://openrouter.ai/api/v1",
     api_key=api_key,
 )
-    model = "openrouter/free"
+    model = "qwen/qwen2.5-vl-7b-instruct:free"
     system_message = [
          {      
             "role": "system",
