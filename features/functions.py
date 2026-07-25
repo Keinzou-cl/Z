@@ -1,7 +1,10 @@
 from .files_information import filepath_validation
 from pypdf import PdfReader
+from pathlib import Path
+import base64  
 
 AVAILABLE_FILETYPES = [".py", ".txt", ".pdf", ".md", ".c", ".sh", ".go"]
+
 
 def read_files(file, num_lines=None):
     results = {
@@ -147,3 +150,135 @@ def bookbot(file):
         results["message"] = verification["message"]
     
     return results
+
+
+def read_images(image):
+    AVAILABLE_IMAGETYPES = [".jpeg", ".png", ".jpg"]
+    results = {
+        "verification_status": None,
+        "message": "",
+        "valid_imagetype": None,
+        "encoded_data": "",
+        "mime_type": None
+
+    }
+    verification = filepath_validation(image)
+    if verification["valid_boundary"] and verification["filepath_exists"]:
+        if verification["resolved_filepath"].is_file():
+            get_fileextension = verification["resolved_filepath"].suffix
+            if get_fileextension in AVAILABLE_IMAGETYPES:
+                results["verification_status"] = True
+                results["valid_imagetype"] = True
+                results["message"] = f'The filepath "{verification["resolved_filepath"]}" is a valid image file.'
+                if get_fileextension == ".jpg":
+                    results["mime_type"] = "image/jpeg"
+                else:
+                    results["mime_type"] = f"image/{get_fileextension[1:]}"
+                with open (verification["resolved_filepath"], "rb") as f:
+                    read_binarydata = f.read()
+                    encode_binarydata = base64.b64encode(read_binarydata)
+                    decoded_datastring = encode_binarydata.decode("utf-8")
+                    results["encoded_data"] = decoded_datastring
+            else: 
+                results["verification_status"] = False
+                results["valid_imagetype"] = False
+                results["message"] = f'The filepath "{verification["resolved_filepath"]}" is an invalid image file or is not a file.'
+        else:
+            results["verification_status"] = False
+            results["valid_imagetype"] = False
+            results["message"] = f'The filepath "{verification["resolved_filepath"]}" is not a valid filep or could be a directory.'
+    else:
+        results["verification_status"] = False
+        results["message"] = verification["message"]
+    
+    return results
+
+def convert_codingfile(filepath, target_language, client, model):
+    results = {
+        "valid_coding_language": None,
+        "verification_status": None,
+        "message": "",
+        "content": "",
+    }
+    coding_languages = {
+        ".py": "Python",
+        ".c": "C",
+        ".go": "GoLang",
+        ".sh": "Shell Script"
+    }
+    language_to_extension = {
+        "python": ".py",
+        "go": ".go",
+        "c": ".c",
+        "shell": ".sh"
+    }
+    AVAILABLE_CODINGFILETYPES = [".py", ".c", ".go", ".sh"]
+    UNACCEPTABLE_PATTERNS = ["import os", "import sys", "import subprocess", "import socket", "open(", "input("]
+    CONVERSION_REFUSED = f'The contents of this file are not convertible or not supported as it may not be a problem-solving code.'
+    filepath = Path(filepath)
+    get_fileextension = filepath.suffix
+    if get_fileextension in AVAILABLE_CODINGFILETYPES:
+        source_language = coding_languages[get_fileextension]
+        results["valid_coding_language"] = True
+        source_file = read_files(filepath)
+        if source_file["verification_status"] and source_file["valid_filetype"]:
+            results["verification_status"] = True
+            results["message"] = f'The filepath "{filepath.resolve()}" is an existing valid filepath and is a supported coding language file.'
+            source_code = source_file["content"]
+            sentences = source_code.split("\n")
+            unaccepted_pattern_found = False
+            for sentence in sentences:
+                for pattern in UNACCEPTABLE_PATTERNS:
+                    if pattern in sentence:
+                        unaccepted_pattern_found = True
+                        break
+                if unaccepted_pattern_found:
+                    break
+            if unaccepted_pattern_found:
+                results["verification_status"] = False
+                results["message"] = "This file contains patterns not supported for conversion (e.g. file I/O, OS access)."
+            else:
+                prompt = f"""You are converting a self-contained coding problem solution from {source_language} to {target_language}.
+
+Only perform this conversion if the code represents a self-contained algorithmic solution, similar to a LeetCode or Codewars problem — no file I/O, external libraries, interactive input, or OS-level operations. If the code does not fit this pattern, respond with exactly: {CONVERSION_REFUSED}
+
+Otherwise, respond with ONLY the converted {target_language} code. Do not include explanations, comments about the conversion process, or markdown code fences.
+
+Here is the code to convert:
+
+{source_code}
+"""         
+                response = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}])
+                converted_code = response.choices[0].message.content
+                target_extension = language_to_extension.get(target_language.lower().strip())
+                if target_extension is None:
+                    results["verification_status"] = False
+                    results["message"] = "Unsupported coding file type."
+                else:
+                    new_filepath = filepath.with_suffix(target_extension)
+    
+                    if converted_code.strip() == CONVERSION_REFUSED:
+                        results["verification_status"] = False
+                        results["message"] = "The LLM determined this code is not a self-contained problem-solving solution and declined to convert it."
+                    else:
+                        create_newfile = create_and_edit_files(new_filepath, mode="create")
+                        if create_newfile["verification_status"]:
+                            edit_newfile = create_and_edit_files(new_filepath, content=converted_code, mode="edit")
+                            if edit_newfile["verification_status"]:
+                                results["verification_status"] = True
+                                results["message"] = f'Successfully converted and saved to "{new_filepath}".'
+                                results["content"] = converted_code
+                            else:
+                                results["verification_status"] = False
+                                results["message"] = edit_newfile["message"]
+                        else:
+                            results["verification_status"] = False
+                            results["message"] = create_newfile["message"]
+        else:
+            results["verification_status"] = False
+            results["message"] = source_file["message"]
+    else:
+        results["valid_coding_language"] = False
+        results["message"] = f'The filepath "{filepath}" is not a supported coding language file.'
+    
+    return results  
