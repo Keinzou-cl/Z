@@ -246,6 +246,7 @@ Here is the code to convert:
 """         
                 response = client.chat.completions.create(model=model, messages=[{"role": "user", "content": prompt}])
                 converted_code = response.choices[0].message.content
+                converted_code = strip_code_fences(converted_code)
                 target_extension = language_to_extension.get(target_language.lower().strip())
                 if target_extension is None:
                     results["verification_status"] = False
@@ -278,3 +279,11 @@ Here is the code to convert:
         results["message"] = f'The filepath "{filepath}" is not a supported coding language file.'
     
     return results  
+
+def strip_code_fences(text):
+    lines = text.strip().split("\n")
+    if lines and lines[0].strip().startswith("```"):
+        lines = lines[1:]
+    if lines and lines[-1].strip().startswith("```"):
+        lines = lines[:-1]
+    return "\n".join(lines)
