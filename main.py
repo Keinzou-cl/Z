@@ -265,6 +265,10 @@ def main():
                 args.verbose = not args.verbose
                 print(f"Verbose mode is now {'ON' if args.verbose else 'OFF'}.")
                 continue
+            elif command == "tui":
+                args.tui = not args.tui
+                print(f"TUI mode is now {'ON' if args.tui else 'OFF'}.")
+                continue
             elif command == "model":
                 alias = " ".join(cmd_args).strip()
                 if alias in AVAILABLE_MODELS:
