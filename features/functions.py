@@ -1,10 +1,8 @@
 from .files_information import filepath_validation
+from constants import AVAILABLE_FILETYPES, AVAILABLE_IMAGETYPES, AVAILABLE_CODINGFILETYPES, UNACCEPTABLE_PATTERNS, CONVERSION_REFUSED
 from pypdf import PdfReader
 from pathlib import Path
 import base64  
-
-AVAILABLE_FILETYPES = [".py", ".txt", ".pdf", ".md", ".c", ".sh", ".go"]
-
 
 def read_files(file, num_lines=None):
     results = {
@@ -153,7 +151,7 @@ def bookbot(file):
 
 
 def read_images(image):
-    AVAILABLE_IMAGETYPES = [".jpeg", ".png", ".jpg"]
+    
     results = {
         "verification_status": None,
         "message": "",
@@ -212,9 +210,7 @@ def convert_codingfile(filepath, target_language, client, model):
         "c": ".c",
         "shell": ".sh"
     }
-    AVAILABLE_CODINGFILETYPES = [".py", ".c", ".go", ".sh"]
-    UNACCEPTABLE_PATTERNS = ["import os", "import sys", "import subprocess", "import socket", "open(", "input("]
-    CONVERSION_REFUSED = f'The contents of this file are not convertible or not supported as it may not be a problem-solving code.'
+    
     filepath = Path(filepath)
     get_fileextension = filepath.suffix
     if get_fileextension in AVAILABLE_CODINGFILETYPES:

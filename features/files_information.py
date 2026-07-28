@@ -1,9 +1,7 @@
 from pathlib import Path
+from pypdf import PdfReader 
+from constants import HOME_DIR, EXCLUDED1, EXCLUDED2
 
-
-HOME_DIR = Path.home()
-EXCLUDED1 = [".venv", ".git", ".gitignore", ".env", "__pycache__", ".ssh", ".bash_logout", ".wget_hsts", ".claude", ".vscode-server", ".profile", ".local", ".config", ".bashrc", ".sudo_as_admin_successful", ".bash_history"]
-EXCLUDED2 = [".cache", ".dotnet", ".gitconfig", ".lesshst", ".wget-hsts", ".motd-shown", ".bootdev-yaml", ".motd_shown", ".landscape", ".bootdev.yaml"]
 
 def filepath_validation(path):
     clear_filepath = (HOME_DIR / path).resolve()
@@ -57,7 +55,7 @@ def list_directory(path):
 
 def search_content(name):
     content = f"*{name}*"
-    all_contents = Path("/").rglob(content)
+    all_contents = HOME_DIR.rglob(content)
     results = {"found": None,
                "status": "",
                "matches": []}
